@@ -539,15 +539,20 @@ async def _play_next_from_queue() -> None:
     next_item = queue.pop(0)
     QUEUE_FILE.write_text(json.dumps(queue))
 
-    # Find the file
+    # Find the file in catalog directories
     from .config import get_settings
     settings = get_settings()
-    catalog_dir = Path(settings.catalog.directory)
 
     file_path = None
-    for path in catalog_dir.rglob("*"):
-        if path.is_file() and path.stem == next_item["id"]:
-            file_path = path
+    for dir_path in settings.catalog.directories:
+        catalog_dir = Path(dir_path).expanduser()
+        if not catalog_dir.exists():
+            continue
+        for path in catalog_dir.rglob("*"):
+            if path.is_file() and path.stem == next_item["id"]:
+                file_path = path
+                break
+        if file_path:
             break
 
     if not file_path:

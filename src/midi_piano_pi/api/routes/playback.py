@@ -256,15 +256,19 @@ async def play_next(player: MIDIPlayer = Depends(get_midi_player)):
     next_item = queue.pop(0)
     save_queue(queue)
 
-    # Find and play the file
+    # Find and play the file in catalog directories
     settings = get_settings()
-    catalog_dir = Path(settings.catalog.directory)
 
-    # Search for file by ID in catalog
     file_path = None
-    for path in catalog_dir.rglob("*"):
-        if path.is_file() and path.stem == next_item["id"]:
-            file_path = path
+    for dir_path in settings.catalog.directories:
+        catalog_dir = Path(dir_path).expanduser()
+        if not catalog_dir.exists():
+            continue
+        for path in catalog_dir.rglob("*"):
+            if path.is_file() and path.stem == next_item["id"]:
+                file_path = path
+                break
+        if file_path:
             break
 
     if not file_path:
