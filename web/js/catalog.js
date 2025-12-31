@@ -130,14 +130,26 @@ const Catalog = {
         if (data.directories.length > 0) {
             dirsContainer.innerHTML = data.directories.map(dir => `
                 <div class="catalog-dir" data-path="${dir.path}">
-                    <span class="dir-icon">folder</span>
+                    <span class="dir-icon">📁</span>
                     <span class="dir-name">${dir.name}</span>
                     <span class="dir-count">${dir.file_count} files</span>
+                    <button class="queue-folder-btn" data-path="${dir.path}" data-name="${dir.name}">Queue All</button>
                 </div>
             `).join('');
 
             dirsContainer.querySelectorAll('.catalog-dir').forEach(el => {
-                el.addEventListener('click', () => this.loadCatalog(el.dataset.path));
+                el.addEventListener('click', (e) => {
+                    // Don't navigate if clicking the queue button
+                    if (e.target.classList.contains('queue-folder-btn')) return;
+                    this.loadCatalog(el.dataset.path);
+                });
+            });
+
+            dirsContainer.querySelectorAll('.queue-folder-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.addFolderToQueue(btn.dataset.path, btn.dataset.name);
+                });
             });
         } else {
             dirsContainer.innerHTML = '';
@@ -283,6 +295,44 @@ const Catalog = {
             }
         } catch (e) {
             console.error('Failed to add to queue:', e);
+        }
+    },
+
+    async addFolderToQueue(folderPath, folderName) {
+        try {
+            // Fetch all files in this folder
+            const url = `/api/v1/catalog?path=${encodeURIComponent(folderPath)}`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (!data.files || data.files.length === 0) {
+                this.showToast(`No files in "${folderName}"`);
+                return;
+            }
+
+            // Sort files by name to ensure correct order
+            const files = data.files.sort((a, b) => a.name.localeCompare(b.name));
+
+            // Add all files to queue
+            let addedCount = 0;
+            for (const file of files) {
+                const addResponse = await fetch('/api/v1/playback/queue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: file.id, name: file.name })
+                });
+                const addData = await addResponse.json();
+                if (addData.success) {
+                    addedCount++;
+                    this.queue = addData.queue;
+                }
+            }
+
+            this.renderQueue();
+            this.showToast(`Added ${addedCount} files from "${folderName}" to queue`);
+        } catch (e) {
+            console.error('Failed to add folder to queue:', e);
+            this.showToast('Failed to add folder to queue');
         }
     },
 

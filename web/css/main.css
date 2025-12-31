@@ -877,6 +877,23 @@ body {
     background: var(--border);
 }
 
+.queue-folder-btn {
+    padding: 0.3rem 0.6rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: auto;
+}
+
+.queue-folder-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
 .dir-icon {
     color: var(--warning);
     font-size: 0.9rem;
